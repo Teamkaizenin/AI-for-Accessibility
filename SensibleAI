@@ -1,0 +1,52 @@
+import os
+import speech_recognition as sr
+from gtts import gTTS
+from transformers import pipeline
+from datetime import datetime
+
+# Load AI model
+chatbot = pipeline("conversational", model="facebook/blenderbot-400M-distill")
+
+# File to store conversation history
+LOG_FILE = "conversations.txt"
+
+def save_conversation(user_input, bot_response):
+    """Save chat history to a file with timestamps."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LOG_FILE, "a") as file:
+        file.write(f"[{timestamp}] You: {user_input}\n")
+        file.write(f"[{timestamp}] AI: {bot_response}\n\n")
+
+def speak(text):
+    """Convert text to speech and play it."""
+    tts = gTTS(text=text, lang='en')
+    tts.save("response.mp3")
+    os.system("start response.mp3")  # Use "mpg321 response.mp3" for Linux
+
+def listen():
+    """Capture voice input and convert it to text."""
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+    try:
+        return recognizer.recognize_google(audio)
+    except:
+        return "Sorry, I didn't catch that."
+
+# Main chat loop
+while True:
+    user_input = listen()
+    
+    if user_input.lower() == "exit":
+        print("Chat saved. Exiting...")
+        break
+
+    response = chatbot(user_input)["generated_text"]
+    print("AI:", response)
+    
+    # Speak the response
+    speak(response)
+
+    # Save conversation
+    save_conversation(user_input, response)
